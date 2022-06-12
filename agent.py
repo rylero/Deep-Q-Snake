@@ -137,7 +137,7 @@ def train():
 		agent.remember(state_current, final_move, reward, state_new, done)
 		
 		if save:
-			agent.model.save(agent.n_games, agent.model, agent.trainer.optimizer)
+			agent.model.save(agent.n_games, agent.model, agent.trainer.optimizer, agent.record)
 
 		if done:
 			# train long memory, plot result

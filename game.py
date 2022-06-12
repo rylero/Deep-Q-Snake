@@ -51,6 +51,7 @@ class SnakeGameAI:
         
         self.score = 0
         self.food = None
+        self.save = False
         self._place_food()
         self.frame_iteration = 0
         
@@ -63,8 +64,6 @@ class SnakeGameAI:
         
     def play_step(self, action):
         self.frame_iteration += 1
-        if self.save:
-            self.save = False
 
         # 1. collect user input
         for event in pygame.event.get():
