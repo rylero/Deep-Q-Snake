@@ -89,7 +89,7 @@ class Agent:
 		else:
 			mini_sample = self.memory
 		states, actions, rewards, next_states, dones = zip(*mini_sample) # create seperate tuples for mini_sample
-		self.trainer.train_step(states, actions, rewards, next_states, dones) # train the batch of data
+		self.trainer.train_step(np.array(states), np.array(actions), np.array(rewards), np.array(next_states), np.array(dones)) # train the batch of data
 
 
 	def train_short_memory(self, state, action, reward, next_state, done):
