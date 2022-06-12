@@ -15,12 +15,15 @@ class Agent:
 		self.n_games = 0
 		self.epsilon = 0 # randomness
 		self.gamma = 0.9 # discount rate
-		self.memory = deque(maxlen=MAX_MEMORY) # popleft()
+		self.memory = deque(maxlen=MAX_MEMORY)
 		self.model = Linear_QNet(11, 256, 3)
+		self.record = 0
 		if input("Use existing model (y/n)? ") == "y":
+			# load model
 			loaded_checkpoint = torch.load("./model/model.pth")
 			print(loaded_checkpoint)
 			self.n_games = loaded_checkpoint["epoch"]
+			self.record = loaded_checkpoint["record"]
 			self.model.load_state_dict(loaded_checkpoint["model_state"])
 			self.trainer = QTrainer(self.model, lr=LR, gamma=self.gamma)
 			self.trainer.optimizer.load_state_dict(loaded_checkpoint["optim_state"])
@@ -28,9 +31,9 @@ class Agent:
 			self.trainer = QTrainer(self.model, lr=LR, gamma=self.gamma)
 		
 		if input("Save model PB's?").lower() in ["y", "yes"]:
-			self.savePB = True
+			self.save_pb = True
 		else:
-			self.savePB = False
+			self.save_pb = False
 
 	def get_state(self, game):
 		head = game.snake[0]
@@ -85,12 +88,12 @@ class Agent:
 			mini_sample = random.sample(self.memory, BATCH_SIZE) # list of tuples
 		else:
 			mini_sample = self.memory
-		states, actions, rewards, next_states, dones = zip(*mini_sample)
-		self.trainer.train_step(states, actions, rewards, next_states, dones)
+		states, actions, rewards, next_states, dones = zip(*mini_sample) # create seperate tuples for mini_sample
+		self.trainer.train_step(states, actions, rewards, next_states, dones) # train the batch of data
 
 
 	def train_short_memory(self, state, action, reward, next_state, done):
-		self.trainer.train_step(state, action, reward, next_state, done)
+		self.trainer.train_step(state, action, reward, next_state, done) # train on one peice of data
 
 	def get_action(self, state, game):
 		# random moves: tradeoff exploration / explotation
@@ -99,10 +102,10 @@ class Agent:
 		else:
 			self.epsilon = np.clip((150 - self.n_games), 7, 120)
 		final_move = [0,0,0]
-		if random.randint(0, 200) < self.epsilon:
+		if random.randint(0, 200) < self.epsilon: # do a random move
 			move = random.randint(0, 2)
 			final_move[move] = 1
-		else:
+		else: # do models predicted move
 			state0 = torch.tensor(state, dtype=torch.float)
 			prediction = self.model(state0)
 			move = torch.argmax(prediction).item()
@@ -113,25 +116,25 @@ def train():
 	plot_scores = []
 	plot_mean_scores = []
 	total_score = 0
-	record = 0
 	agent = Agent()
 	game = SnakeGameAI()
+
 	while True:
-		# get old state
-		state_old = agent.get_state(game)
+		# get current state
+		state_current = agent.get_state(game)
 
 		# get move
-		final_move = agent.get_action(state_old, game)
+		final_move = agent.get_action(state_current, game)
 
 		#perform move and get new state
 		reward, done, score, save = game.play_step(final_move)
 		state_new = agent.get_state(game)
 
 		#train short memory
-		agent.train_short_memory(state_old, final_move, reward, state_new, done)
+		agent.train_short_memory(state_current, final_move, reward, state_new, done)
 
 		#remeber
-		agent.remember(state_old, final_move, reward, state_new, done)
+		agent.remember(state_current, final_move, reward, state_new, done)
 		
 		if save:
 			agent.model.save(agent.n_games, agent.model, agent.trainer.optimizer)
@@ -142,11 +145,13 @@ def train():
 			agent.n_games +=1
 			agent.train_long_memory()
 
-			if score > record:
-				record = score
-				agent.model.save(agent.n_games, agent.model, agent.trainer.optimizer)
+			# check if we set a new high score
+			if score > agent.record:
+				agent.record = score
+				if agent.save_pb:
+					agent.model.save(agent.n_games, agent.model, agent.trainer.optimizer, agent.record)
 
-			print("Game: ", agent.n_games, " Score: ", score, " Record: ", record)
+			print("Game: ", agent.n_games, " Score: ", score, " Record: ", agent.record)
 			
 			plot_scores.append(score)
 			total_score += score

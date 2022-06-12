@@ -6,13 +6,6 @@ import numpy as np
 
 pygame.init()
 font = pygame.font.Font('arial.ttf', 25)
-#font = pygame.font.SysFont('arial', 25)
-
-# reset
-# reward
-# play(action) -> direction
-# game_iteration
-# is_collision
 
 class Direction(Enum):
     RIGHT = 1
@@ -20,7 +13,7 @@ class Direction(Enum):
     UP = 3
     DOWN = 4
     
-Point = namedtuple('Point', 'x, y')
+Point = namedtuple('Point', 'x, y') # create the point object
 
 # rgb colors
 WHITE = (255, 255, 255)
@@ -48,6 +41,7 @@ class SnakeGameAI:
         self.save = False
 
     def reset(self):
+        # reset all values so the game restarts
         self.direction = Direction.RIGHT
         
         self.head = Point(self.w/2, self.h/2)
@@ -78,6 +72,7 @@ class SnakeGameAI:
                 pygame.quit()
                 quit()
             if event.type == pygame.KEYDOWN:
+                # get the diffrent setting keys
                 if event.key == pygame.K_SPACE:
                     self.ui = not self.ui
                 if event.key == pygame.K_UP:

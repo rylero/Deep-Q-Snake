@@ -7,6 +7,7 @@ import os
 class Linear_QNet(nn.Module):
 	def __init__(self, input_size, hidden_size, output_size):
 		super().__init__()
+		# create layers
 		self.linear1 = nn.Linear(input_size, hidden_size)
 		self.linear2 = nn.Linear(hidden_size, output_size)
 
@@ -15,15 +16,17 @@ class Linear_QNet(nn.Module):
 		x = self.linear2(x)
 		return x
 
-	def save(self, number_of_games, model, optimizer, file_name='model.pth'):
+	def save(self, number_of_games, model, optimizer, record, file_name='model.pth'):
+		# get path for save
 		model_folder_path = './model'
 		if not os.path.exists(model_folder_path):
 			os.makedirs(model_folder_path)
 		file_name = os.path.join(model_folder_path, file_name)
 		checkpoint = {
-			"epoch": number_of_games,
-			"model_state": model.state_dict(),
-			"optim_state": optimizer.state_dict() 
+			"epoch": number_of_games, # number of games played
+			"record": record, # snakes record
+			"model_state": model.state_dict(), # model state
+			"optim_state": optimizer.state_dict() # optimizer state
 		}
 		torch.save(checkpoint, file_name)
 		print("Saved")
@@ -34,7 +37,7 @@ class QTrainer:
 		self.gamma = gamma
 		self.model = model
 		self.optimizer = optim.Adam(model.parameters(), lr=self.lr)
-		self.criterion = nn.MSELoss()
+		self.criterion = nn.MSELoss() # loss function
 
 	def train_step(self, state, action, reward, next_state, done):
 		state = torch.tensor(state, dtype=torch.float)
@@ -42,7 +45,7 @@ class QTrainer:
 		action = torch.tensor(action, dtype=torch.long)
 		reward = torch.tensor(reward, dtype=torch.float)
 
-		if len(state.shape) == 1:
+		if len(state.shape) == 1: # if training short memory instead of long (there will only be one value for short vs a batch size for long)
 			# (1, x)
 			state = torch.unsqueeze(state, 0)
 			next_state = torch.unsqueeze(next_state, 0)
@@ -64,10 +67,9 @@ class QTrainer:
 				Q_new = reward[idx] + self.gamma * torch.max(self.model(next_state[idx]))
 			target[idx][torch.argmax(action).item()] = Q_new
 
+		# optimize and compute loss
 		self.optimizer.zero_grad()
 		loss = self.criterion(target, pred)
 		loss.backward()
 
 		self.optimizer.step()
-
-
